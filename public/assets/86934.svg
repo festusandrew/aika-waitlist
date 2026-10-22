@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="62.4" height="693.6" viewBox="0 0 62.4 693.6" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path id="Architectural fin" d="M0 0L40.8 32.4L62.4 50.4V631.2L40.8 661.2L0 693.6V0Z" fill="url(#paint0_linear_0_21)"/>
+<defs>
+<linearGradient id="paint0_linear_0_21" x1="0" y1="346.8" x2="62.4" y2="346.8" gradientUnits="userSpaceOnUse">
+<stop stop-color="#5E22D6"/>
+<stop offset="0.07" stop-color="#211A2B"/>
+<stop offset="0.66" stop-color="#15101D"/>
+<stop offset="0.68" stop-color="#211A2B"/>
+<stop offset="1" stop-color="#15101D"/>
+</linearGradient>
+</defs>
+</svg>
