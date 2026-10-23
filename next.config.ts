@@ -41,6 +41,8 @@ const nextConfig: NextConfig = {
   // Prerender source maps add ~100 MB per static build worker
   enablePrerenderSourceMaps: false,
   experimental: {
+    // Adopt the Next.js security upgrade policy for this app.
+    agentUpgrade: 'security',
     // Caps static build workers (~250-380 MB each) to lower `next build` peak memory
     cpus: 2,
     // Payload Admin uses Next Server Actions. In the Make preview proxy, the
