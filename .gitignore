@@ -12,10 +12,10 @@ next-env.d.ts
 logs/
 *.log
 .claude-replay.*
-.figma/runtime/
 .payload-routes-disabled/
 .tmp-*
-/.figma/design-context/
+media/
+public/media/
 
 # Platform-managed agentplat state, not project source. In the
 # client-initiated single-repo workspace layout (make's `Path: "."` spec) the

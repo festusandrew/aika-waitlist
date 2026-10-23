@@ -5,14 +5,12 @@ import path from 'node:path'
 /**
  * Vercel build entrypoint.
  *
- * This project's Payload admin is hosted by Figma Cloud (`@payloadcms/figma`)
- * and its config refuses to boot without Figma-provisioned environment IDs.
- * The public waitlist does not use Payload, so when those variables are absent
- * we build the frontend only. When they are present, we run the regular
- * `payload build` so the admin is included.
+ * Payload needs DATABASE_URI and PAYLOAD_SECRET. When they are absent we build
+ * the public waitlist only, so a preview deployment still works before the CMS
+ * has been connected. When they are present we run the regular `payload build`.
  *
  * The Payload route group is moved outside `src/app` only for the duration of
- * the build. The repository and the Figma Make deploy path are untouched.
+ * the frontend-only build, then restored.
  */
 
 const projectRoot = process.cwd()
@@ -20,10 +18,8 @@ const payloadRoutes = path.join(projectRoot, 'src', 'app', '(payload)')
 // Park at the project root so the rename stays on one filesystem (no EXDEV).
 const parkedRoutes = path.join(projectRoot, '.payload-routes-disabled')
 
-const hasFigmaBackend = Boolean(
-  process.env.FIGMA_EID ||
-    process.env.FIGMA_CONTENT_API_CONTENT_SYSTEM_ID ||
-    process.env.FIGMA_PROJECT_ID,
+const hasPayloadBackend = Boolean(
+  process.env.DATABASE_URI && process.env.PAYLOAD_SECRET,
 )
 
 function run(command) {
@@ -46,12 +42,12 @@ function run(command) {
   })
 }
 
-if (hasFigmaBackend) {
+if (hasPayloadBackend) {
   // Full build: generates the import map and Payload types, then Next.
   run('pnpm run build')
 } else {
   console.log(
-    '[vercel-build] Figma Cloud env not configured; building the public site without Payload admin.',
+    '[vercel-build] DATABASE_URI/PAYLOAD_SECRET not configured; building the public site without /admin.',
   )
 
   // Recover routes left parked by an interrupted build.

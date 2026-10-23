@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: 'Plus Jakarta Sans:Medium';
-  src: url('https://static.figma.com/font/PlusJakartaSans_wght__2') format('woff2');
+  src: url('/fonts/plus-jakarta-sans.ttf') format('truetype');
   font-style: normal;
   font-weight: 500;
   font-display: swap;
@@ -10,7 +10,7 @@
 
 @font-face {
   font-family: 'Plus Jakarta Sans:Regular';
-  src: url('https://static.figma.com/font/PlusJakartaSans_wght__2') format('woff2');
+  src: url('/fonts/plus-jakarta-sans.ttf') format('truetype');
   font-style: normal;
   font-weight: 400;
   font-display: swap;
@@ -18,10 +18,27 @@
 
 @font-face {
   font-family: 'Roboto Mono:Regular';
-  src: url('https://static.figma.com/font/RobotoMono_wght__2') format('woff2');
+  src: url('/fonts/roboto-mono.ttf') format('truetype');
   font-style: normal;
   font-weight: 400;
   font-display: swap;
+}
+
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: -9999px;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  border-radius: 0 0 0.5rem 0;
+  background: #faf9fc;
+  color: #15101d;
+  font-family: 'Plus Jakarta Sans:Medium', sans-serif;
+  font-weight: 500;
+}
+
+.skip-link:focus {
+  left: 0;
 }
 
 :root {

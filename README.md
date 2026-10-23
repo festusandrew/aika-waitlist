@@ -2,7 +2,12 @@
 
 Pre-launch landing page for aika, with an email waitlist backed by
 [Brevo](https://www.brevo.com/). Built with Next.js 16 (App Router), React 19,
-Tailwind CSS v4, and Payload CMS on Figma Cloud.
+Tailwind CSS v4, and a self-hosted Payload CMS using Postgres and Vercel Blob.
+
+The public waitlist is independent of Payload: it does not query the CMS, so it
+keeps working even before the database is connected. Payload is available at
+`/admin` for managing the starter collections (`Posts`, `Media`, `Folders`,
+`Tags`, and `Admins`).
 
 ## Local development
 
@@ -11,55 +16,76 @@ pnpm install
 pnpm dev
 ```
 
-The dev server listens on `$PORT` (default `3000`).
+The dev server listens on <http://localhost:3000>.
 
-Create a `.env.local` with the variables from `.env.example` to test real
-waitlist submissions. Without Brevo credentials the API returns a friendly
-`503` and the page still renders.
+Copy `.env.example` to `.env.local` and fill in the values. Without Brevo
+credentials the waitlist API returns a friendly `503` and the page still renders.
+Without `DATABASE_URI` and `PAYLOAD_SECRET`, the public site still runs but
+`/admin` is unavailable.
+
+To use the CMS locally:
+
+1. Create a Postgres database (Neon, Supabase, Vercel Postgres, or a local
+   server).
+2. Put its connection string in `DATABASE_URI`.
+3. Generate a secret with `openssl rand -hex 32` and put it in `PAYLOAD_SECRET`.
+4. Apply the committed migrations once:
+
+   ```bash
+   pnpm migrate
+   ```
+
+5. Run `pnpm dev` and open <http://localhost:3000/admin>. The first visit lets
+   you create the first admin account with email/password.
+
+Development and production use the same committed migrations, so a schema
+change is made once and applied consistently:
+
+```bash
+pnpm migrate:create
+pnpm migrate
+```
+
+Commit the new files under `src/migrations/`. Production applies pending
+migrations automatically at startup through `prodMigrations`.
 
 ## Environment variables
 
-| Variable             | Required | Description                                            |
-| -------------------- | -------- | ------------------------------------------------------ |
-| `BREVO_API_KEY`      | Yes      | Brevo API v3 key. Server-only.                         |
-| `BREVO_LIST_ID`      | Yes      | Numeric ID of the Brevo list new signups are added to. |
-| `BREVO_SENDER_EMAIL` | Yes      | Verified Brevo sender address for the welcome email.   |
-| `NEXT_PUBLIC_SITE_URL` | No     | Public URL for canonical/OG metadata.                  |
+| Variable                | Required for          | Description                                                        |
+| ----------------------- | --------------------- | ------------------------------------------------------------------ |
+| `BREVO_API_KEY`         | Waitlist              | Brevo API v3 key. Server-only.                                     |
+| `BREVO_LIST_ID`         | Waitlist              | Numeric ID of the Brevo list new signups are added to.             |
+| `BREVO_SENDER_EMAIL`    | Waitlist              | Verified Brevo sender address for the welcome email.               |
+| `DATABASE_URI`          | Payload admin         | Postgres connection string. Use a pooled URL on Vercel.            |
+| `PAYLOAD_SECRET`        | Payload admin         | Long random string used to sign admin sessions.                    |
+| `BLOB_READ_WRITE_TOKEN` | Media uploads         | Vercel Blob read/write token. Local development can omit it.       |
+| `NEXT_PUBLIC_SITE_URL`  | No                    | Canonical public URL for metadata. Vercel supplies a default.      |
 
-`BREVO_API_KEY` is a secret. Never rename it to `NEXT_PUBLIC_*` and never commit
-it. Add it through your hosting provider's environment variable settings.
+`BREVO_API_KEY`, `DATABASE_URI`, `PAYLOAD_SECRET`, and
+`BLOB_READ_WRITE_TOKEN` are secrets. Keep them out of `NEXT_PUBLIC_*`
+variables, never commit `.env.local`, and add them through Vercel's environment
+variable settings.
 
 ## Deployment
 
 ### Vercel
 
 1. Import the repository in Vercel.
-2. Add `BREVO_API_KEY`, `BREVO_LIST_ID`, and `BREVO_SENDER_EMAIL` under
-   **Project → Settings → Environment Variables** for Production and Preview.
-3. Deploy. `vercel.json` runs `scripts/vercel-build.mjs`, which:
-   - runs the normal `payload build` when Figma Cloud environment IDs are
-     present; or
-   - builds the public waitlist only when they are absent.
+2. Add the Brevo variables under **Project → Settings → Environment
+   Variables** for Production and Preview.
+3. Add `DATABASE_URI` and `PAYLOAD_SECRET` to enable the CMS.
+4. Add `BLOB_READ_WRITE_TOKEN` if you want durable media uploads.
+5. Deploy. `vercel.json` runs `scripts/vercel-build.mjs`, which:
+   - runs the full `payload build` when `DATABASE_URI` and `PAYLOAD_SECRET`
+     are present; or
+   - builds the public waitlist only when either value is missing.
 
-The Payload admin is hosted by Figma Cloud and needs platform-provisioned
-values (`FIGMA_EID`, `FIGMA_CONTENT_API_CONTENT_SYSTEM_ID`, and related
-credentials) to boot. Without them the build would fail with
-`Environment ID could not be resolved`, so the Vercel build excludes the admin
-route group for that deployment. The waitlist, thank-you flow, mini-game, and
-API route work normally. `/admin` is not available on Vercel in that mode.
+In frontend-only mode the `/admin` and Payload API routes are excluded and the
+public site works normally. Add the two Payload variables and redeploy to enable
+`/admin`. Pending migrations are applied automatically on the first production
+request.
 
-To include the CMS on Vercel, set the Figma Cloud environment variables in the
-Vercel project; the build script automatically switches to the full build. The
-supported hosting path for the CMS remains Figma Make (`pnpm run build`).
-
-### Figma Make
-
-```bash
-.figma/make/deploy
-```
-
-This runs `pnpm run build` (`payload build`) and uploads through the Figma Make
-adapter.
+The waitlist API and the mini-game do not depend on Payload or the database.
 
 ### Custom domain / metadata
 
@@ -69,13 +95,19 @@ for `metadataBase` and Open Graph URLs. For a custom domain, set
 
 ## Scripts
 
-| Command              | Purpose                                   |
-| -------------------- | ----------------------------------------- |
-| `pnpm dev`           | Start Next.js in development mode.        |
-| `pnpm build`         | Payload + Next production build.          |
-| `pnpm start`         | Serve the production build.               |
-| `pnpm generate:types`| Regenerate `src/payload-types.ts`.        |
-| `pnpm format`        | Format with oxfmt.                        |
+| Command                 | Purpose                                            |
+| ----------------------- | -------------------------------------------------- |
+| `pnpm dev`              | Start Next.js in development mode.                 |
+| `pnpm build`            | Payload + Next production build.                   |
+| `pnpm start`            | Serve the production build.                        |
+| `pnpm generate:types`   | Regenerate `src/payload-types.ts`.                 |
+| `pnpm generate:importmap` | Regenerate the Payload admin import map.         |
+| `pnpm migrate:create`   | Create a Postgres migration.                       |
+| `pnpm migrate`          | Apply pending Postgres migrations.                 |
+| `pnpm format`           | Format with oxfmt.                                 |
+
+`pnpm build` loads the Payload config, so it needs `DATABASE_URI` and
+`PAYLOAD_SECRET`. The Vercel entrypoint handles the unconfigured case.
 
 ## API
 
@@ -89,6 +121,11 @@ for `metadataBase` and Open Graph URLs. For a custom domain, set
 
 ## Content and admin
 
-Payload collections (`Admins`, `Media`, `Folders`, `Tags`, `Posts`) live in
-`src/collections/` and are registered in `src/payload.config.ts`. The public
-waitlist does not read from Payload; it is an independent Brevo integration.
+Payload collections live in `src/collections/` and are registered in
+`src/payload.config.ts`. The admin uses Payload email/password authentication;
+the first admin is created from `/admin` while the `Admins` collection is empty.
+Additional admins can be created by an authenticated admin.
+
+Media uploads use Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set and fall back
+to local disk during development. Vercel's filesystem is ephemeral, so set the
+token for persistent uploads in production.
