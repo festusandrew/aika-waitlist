@@ -2,6 +2,7 @@
   "name": "figma-make-app",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "pnpm@10.34.3",
   "type": "module",
   "scripts": {
     "dev": "NODE_OPTIONS=--no-deprecation next dev --port ${PORT:-3000} --hostname 0.0.0.0",

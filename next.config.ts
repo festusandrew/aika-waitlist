@@ -13,8 +13,16 @@ const makePublicPreviewOrigin = (() => {
   }
 })()
 
+// Prefer the Figma Make URL, then Vercel's production/deployment URL, then local.
+const vercelHost =
+  process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL
+const siteURL =
+  process.env.FIGMA_PUBLIC_URL ||
+  (vercelHost ? `https://${vercelHost}` : 'http://localhost:3000')
+
 const nextConfig: NextConfig = {
   output: 'standalone',
+  poweredByHeader: false,
   images: {
     loader: 'custom',
     loaderFile: './figma-image-loader.ts',
@@ -42,8 +50,24 @@ const nextConfig: NextConfig = {
       allowedOrigins: makePublicPreviewOrigin ? [makePublicPreviewOrigin] : [],
     },
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+        ],
+      },
+    ]
+  },
   env: {
-    NEXT_PUBLIC_SITE_URL: process.env.FIGMA_PUBLIC_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_SITE_URL: siteURL,
     // NOTE: Do not add FIGMA_OAUTH_CLIENT_SECRET, FIGMA_CONTENT_API_ACCESS_KEY,
     // or any other credential here. Values placed in `env` are inlined into
     // the JavaScript bundle by Next.js at build time and become readable by

@@ -5,6 +5,7 @@ dist/
 build/
 .cache/
 .env*
+!.env.example
 next-env.d.ts
 *.tsbuildinfo
 *-debug.log*
@@ -12,6 +13,7 @@ logs/
 *.log
 .claude-replay.*
 .figma/runtime/
+.payload-routes-disabled/
 .tmp-*
 /.figma/design-context/
 
